@@ -7,9 +7,9 @@
 첨부된 APK 파일의 경우 플레이 영상에서 보이는 피격 애니메이션 버그가 수정된 버전이며, Development Build로 되어 있고, Meta Quest 3 Standalone VR으로 동작합니다.<br/>
 개발 일지의 경우 Notion, 플레이 및 기능 설명의 경우 Youtube 영상에서 확인하실 수 있습니다.
 
-![스크린샷 2025-09-21 221637.png](attachment:544efa02-37b7-447c-82f7-e3167bfffb89:스크린샷_2025-09-21_221637.png)
 
-![스크린샷 2025-09-22 171138.png](attachment:fd6ef556-ed75-4a38-aba5-0c68fd0d771f:스크린샷_2025-09-22_171138.png)
+<img src="./Images/Title_Image_1.png" width=100%>
+<img src="./Images/Title_Image_2.png" width=100%>
 
 
 ### 프로젝트 진행 타임라인
@@ -74,10 +74,9 @@
 <br/><br/>
 
 ## 1. 프로젝트 초기 기획 및 배경
+<img src="./Images/Background_1.png" width=100%>
+<img src="./Images/Background_2.png" width=100%>
 
-![스크린샷 2025-10-27 004827.png](attachment:61822bb8-1aae-49b7-a45b-18e178ba754a:스크린샷_2025-10-27_004827.png)
-
-![스크린샷 2025-10-27 005039.png](attachment:6ccb77a8-de6c-4798-90e6-d959520bd7a5:스크린샷_2025-10-27_005039.png)
 <br/>
 
 ### 1 - 전투 시스템: 원거리 슈팅 중심의 직관적 설계
@@ -274,8 +273,8 @@ VR 경험의 가장 큰 장벽인 멀미를 해결하는 것을 최우선 과제
 최저 17 프레임
 
 최고 36 프레임
+<img src="./Images/Before_Frame.png" width=100%>
 
-![25All.png](attachment:ca47ad79-71c2-4c41-9529-2c3cd42483fe:25All.png)
 <br/>
 최적화 후
 
@@ -285,8 +284,7 @@ VR 경험의 가장 큰 장벽인 멀미를 해결하는 것을 최우선 과제
 
 최고 84 프레임
 
-
-![25All_Final.png](attachment:f9b40d66-25b7-4a62-b38b-b3d4647354ad:25All_Final.png)
+<img src="./Images/After_Frame.png" width=100%>
     
 </div>
 </details>
