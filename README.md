@@ -18,7 +18,7 @@
 
 ### 플레이 및 기능 설명 영상
 
-### Youtube :
+### Youtube : https://youtu.be/GQUvhovunlA
 
 ### 프로젝트 진행 기간
 
