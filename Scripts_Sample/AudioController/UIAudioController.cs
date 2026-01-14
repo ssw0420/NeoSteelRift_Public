@@ -34,14 +34,14 @@ namespace SSW.Audio
             }
         }
 
-        // private void OnDestroy()
-        // {
-        //     if (!_applicationIsQuitting && GameManager.Instance != null)
-        //     {
-        //         GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
-        //         CustomLogger.LogInfo("UIAudioController: Unsubscribed from OnGameStateChanged.");
-        //     }
-        // }
+        private void OnDestroy()
+        {
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
+                CustomLogger.LogInfo("UIAudioController: Unsubscribed from OnGameStateChanged.");
+            }
+        }
 
         private void OnGameStateChanged(GameManager.GameState newState)
         {
