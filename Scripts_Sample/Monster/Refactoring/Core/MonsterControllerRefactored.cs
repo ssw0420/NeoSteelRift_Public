@@ -180,7 +180,10 @@ namespace SSW.Monster
         {
             SetupMonsterStats();
             ResetMonster();
-            FindTarget();
+            if(_target == null)
+            {
+                FindTarget();
+            }
             FaceTarget();
 
             ChangeState(MonsterState.Spawn);
@@ -196,7 +199,7 @@ namespace SSW.Monster
             }
             if (_target == null || _isKnockedBack || _isDead)
                 return;
-
+            // 현재 상태 업데이트
             _currentState?.OnUpdate();
         }
         #endregion
