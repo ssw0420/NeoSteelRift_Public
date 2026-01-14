@@ -88,10 +88,12 @@ namespace SSW.Audio
             _currentBGMInstance.start();
         }
 
-        // private void OnDestroy()
-        // {
-        //     GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
-        //     //StopCurrentBGM();
-        // }
+        private void OnDestroy()
+        {
+            if(GameManager.Instance != null)
+            {
+                GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
+            }
+        }
     }
 }
