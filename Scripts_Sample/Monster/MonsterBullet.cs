@@ -16,14 +16,22 @@ namespace SSW.Monster
 
         [Header("Bullet Settings")]
         [SerializeField] private float _lifeTime = 4f;
-        [SerializeField] private float _timer = 0f;
         private float _attackDamage;
-
+        private Coroutine _lifeTimeCoroutine;
 
         private void OnEnable()
         {
-            StartCoroutine(CoLifeTime());
-            _timer = 0f;
+            _lifeTimeCoroutine = StartCoroutine(CoLifeTime());
+        }
+
+        private void OnDisable()
+        {
+            // 풀로 반환될 때 코루틴 정리 (안전성)
+            if (_lifeTimeCoroutine != null)
+            {
+                StopCoroutine(_lifeTimeCoroutine);
+                _lifeTimeCoroutine = null;
+            }
         }
 
         public void Initialize(float damage)
@@ -31,21 +39,14 @@ namespace SSW.Monster
             _attackDamage = damage;
         }
 
-        private void Update()
-        {
-            _timer += Time.deltaTime;
-            if (_timer >= _lifeTime)
-            {
-                _timer = 0f;
-                PoolManager.Instance.ReturnToPool(gameObject, _poolKey);
-                //CustomLogger.LogInfo($"Bullet returned to pool: {_poolKey}", this);
-            }
-        }
-
-
         private void OnCollisionEnter(Collision collision)
         {
-            StopAllCoroutines();
+            // 충돌 시 lifetime 코루틴 중지
+            if (_lifeTimeCoroutine != null)
+            {
+                StopCoroutine(_lifeTimeCoroutine);
+                _lifeTimeCoroutine = null;
+            }
 
             GameObject hitEffect = PoolManager.Instance.GetFromPool(_hitEffectPoolKey);
             if (hitEffect != null)

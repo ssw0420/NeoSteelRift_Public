@@ -75,8 +75,8 @@ namespace NeoSteelRift.Scripts.Logger
 
         /// <summary>
         /// Log an error message to the console. (Debug.LogError)
+        /// Always active - errors must be visible!
         /// </summary>
-        [System.Diagnostics.Conditional("DEBUG_MODE")]
         public static void LogError(
             string message,
             UnityEngine.Object context = null,
@@ -92,8 +92,8 @@ namespace NeoSteelRift.Scripts.Logger
 
         /// <summary>
         /// Log an assert message to the console. (Debug.LogAssertion)
+        /// Always active - assertions must be checked!
         /// </summary>
-        [System.Diagnostics.Conditional("DEBUG_MODE")]
         public static void LogAssertion(
             string message,
             UnityEngine.Object context = null,
@@ -108,8 +108,8 @@ namespace NeoSteelRift.Scripts.Logger
 
         /// <summary>
         /// Log an exception message to the console. (Debug.LogException)
+        /// Always active - exceptions must be visible!
         /// </summary>
-        [System.Diagnostics.Conditional("DEBUG_MODE")]
         public static void LogException(
             Exception exception,
             UnityEngine.Object context = null,
@@ -125,8 +125,8 @@ namespace NeoSteelRift.Scripts.Logger
 
         /// <summary>
         /// Assert a condition and log a message if the condition is false. (Debug.LogAssert)
+        /// Always active - assertions must be checked!
         /// </summary>
-        [System.Diagnostics.Conditional("DEBUG_MODE")]
         public static void LogAssert(
             bool condition,
             string message,
