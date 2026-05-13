@@ -13,6 +13,8 @@ public class ParticleAutoReturn : MonoBehaviour
 
     private Vector3 _originalScale;
 
+    private WaitForSeconds _waitForMaxDuration;
+
     private void Awake()
     {
         _originalScale = transform.localScale;
@@ -26,6 +28,7 @@ public class ParticleAutoReturn : MonoBehaviour
                 _maxDuration = particleSystem.main.duration;
             }
         }
+        _waitForMaxDuration = new WaitForSeconds(_maxDuration);
     }
     private void OnEnable()
     {
@@ -35,7 +38,7 @@ public class ParticleAutoReturn : MonoBehaviour
 
     private IEnumerator ReturnToPoolAfterLifetime()
     {
-        yield return new WaitForSeconds(_maxDuration);
+        yield return _waitForMaxDuration;
         PoolManager.Instance.ReturnToPool(gameObject, _poolKey);
     }
 

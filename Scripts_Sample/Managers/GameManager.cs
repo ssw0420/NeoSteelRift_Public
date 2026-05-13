@@ -40,8 +40,6 @@ namespace Managers
         [Header("Managers")]
         [SerializeField]
         private DataManager _dataManager;
-        [SerializeField]
-        private PoolManager _poolManager;
 
         public GameState GetGameState() => _currentState;
 

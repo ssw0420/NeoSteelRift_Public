@@ -18,6 +18,12 @@ namespace SSW.Monster
         [SerializeField] private float _lifeTime = 4f;
         private float _attackDamage;
         private Coroutine _lifeTimeCoroutine;
+        private WaitForSeconds _lifeTimeWait;
+
+        private void Awake()
+        {
+            _lifeTimeWait = new WaitForSeconds(_lifeTime);
+        }
 
         private void OnEnable()
         {
@@ -66,7 +72,7 @@ namespace SSW.Monster
 
         private IEnumerator CoLifeTime()
         {
-            yield return new WaitForSeconds(_lifeTime);
+            yield return _lifeTimeWait;
             PoolManager.Instance.ReturnToPool(gameObject, _poolKey);
         }
     }
