@@ -230,7 +230,6 @@ VR 경험의 가장 큰 장벽인 멀미를 해결하는 것을 최우선 과제
  ┃ ┣ 📜HitBox.cs
  ┃ ┣ 📜MonsterAudioController.cs
  ┃ ┣ 📜MonsterBullet.cs
- ┃ ┣ 📜MonsterController.cs								#리팩토링 전
  ┃ ┣ 📜MonsterHitSplash.cs
  ┃ ┣ 📜RendererController.cs
  ┃ ┣ 📜RobotAnimator.cs
@@ -255,6 +254,12 @@ VR 경험의 가장 큰 장벽인 멀미를 해결하는 것을 최우선 과제
  ┗ 📂VFX												#이펙트 Pooling
  ┃ ┣ 📜ParticleAutoReturn.cs
  ┃ ┗ 📜VFXAutoReturn.cs
+ ┗ 📂Legacy                                             #리팩토링 / 수정 전
+ ┃ ┣ 📜MonsterController_Legacy.cs
+ ┃ ┗ 📜PoolManager_Legacy.cs
+ ┗ 📂Test
+ ┃ ┣ 📜BulletStressSpawner.cs
+ ┃ ┗ 📜StressTestBullet.cs
 ```
 
 <br/><br/>

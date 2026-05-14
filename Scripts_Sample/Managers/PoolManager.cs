@@ -2,10 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using ScriptableObjects.PoolData;
-using Unity.VisualScripting;
-using System;
-using SSW.Monster;
 using UnityEngine.SceneManagement;
+using System;
+using System.Reflection;
 
 namespace Managers
 {
@@ -19,6 +18,17 @@ namespace Managers
     [DefaultExecutionOrder(-80)]
     public class PoolManager : Singleton<PoolManager>
     {
+        #region  Types
+
+        private class PoolEntry
+        {
+            public Stack<GameObject> InactiveObjects;
+            public GameObject Prefab;
+            public int MaxAmount;
+            public int TotalCount;
+        }
+
+        #endregion
         #region Variables
 
         [Header("Pool Data (ScriptableObject)")]
@@ -26,10 +36,19 @@ namespace Managers
         [SerializeField]
         private PoolDataSO _poolDataSO;
 
-        private Dictionary<string, List<GameObject>> _pools;   // key -> list of objects
-        private Dictionary<string, GameObject> _prefabDict;    // key -> prefab reference
-        private Dictionary<string, int> _maxAmounts;           // key -> max amount
+        // private Dictionary<string, List<GameObject>> _pools;   // key -> list of objects
+        // private Dictionary<string, GameObject> _prefabDict;    // key -> prefab reference
+        // private Dictionary<string, int> _maxAmounts;           // key -> max amount
+        private Dictionary<string, PoolEntry> _pools; // key -> PoolEntry containing prefab, max amount, and stack of available objects
         private bool _isInitalized = false;
+
+        #endregion
+
+        #region Profiler Variables
+        private static readonly string GetFromPoolMarkerName = "PoolManager.GetFromPool";
+        private static readonly string ReturnToPoolMarkerName = "PoolManager.ReturnToPool";
+        private Unity.Profiling.ProfilerMarker _getFromPoolMarker = new Unity.Profiling.ProfilerMarker(GetFromPoolMarkerName);
+        private Unity.Profiling.ProfilerMarker _returnToPoolMarker = new Unity.Profiling.ProfilerMarker(ReturnToPoolMarkerName);
 
         #endregion
 
@@ -64,9 +83,9 @@ namespace Managers
         private void ClearAllPools()
         {
             if (_pools == null) return;
-            foreach (var poolList in _pools.Values)
+            foreach (var entry in _pools.Values)
             {
-                foreach (var obj in poolList)
+                foreach (var obj in entry.InactiveObjects)
                 {
                     if (obj != null)
                     {
@@ -75,9 +94,7 @@ namespace Managers
                 }
             }
             _pools.Clear();
-            _prefabDict.Clear();
-            _maxAmounts.Clear();
-            _isInitalized = false;
+             _isInitalized = false;
         }
 
 
@@ -85,9 +102,7 @@ namespace Managers
         {
             if (_isInitalized) return;
             // Initialize dictionaries
-            _pools = new Dictionary<string, List<GameObject>>();
-            _prefabDict = new Dictionary<string, GameObject>();
-            _maxAmounts = new Dictionary<string, int>();
+            _pools = new Dictionary<string, PoolEntry>();
 
             // If the ScriptableObject is missing, can't build the dictionary
             if (_poolDataSO == null)
@@ -114,43 +129,41 @@ namespace Managers
                     continue;
                 }
 
-                _pools[item.key] = new List<GameObject>();
-                _prefabDict[item.key] = item.prefab;
-                int maxVal = (item.maxAmount <= 0) ? 0 : item.maxAmount;
-                _maxAmounts[item.key] = maxVal;
+                _pools[item.key] = new PoolEntry
+                {
+                    InactiveObjects = new Stack<GameObject>(),
+                    Prefab = item.prefab,
+                    MaxAmount = (item.maxAmount <= 0) ? 0 : item.maxAmount,
+                    TotalCount = 0
+                };
             }
 
             // Preload objects
             // For each item, create item.preloadCount objects in advance
             foreach (var item in _poolDataSO._poolItems)
             {
-                if (!_pools.ContainsKey(item.key))
-                    continue; // If we skipped it above, ignore
-
-                if (item.preloadAmount <= 0)
-                    continue;
-
-                var prefab = item.prefab;
-                if (prefab == null)
+                if (!_pools.TryGetValue(item.key, out PoolEntry entry)) continue; // If we skipped it above, ignore
+                if (item.preloadAmount <= 0) continue;
+                if (entry.Prefab == null)
                 {
                     Debug.LogWarning($"PoolManager: prefab is null for key '{item.key}', skipping preload.");
                     continue;
                 }
 
-                int maxAmount = _maxAmounts[item.key];
-
                 // Pre-instantiate 'preloadCount' objects
-                for (int i = 0; i < item.preloadAmount; i++)
+                for (int i = 0; i < item.preloadAmount; ++i)
                 {
-                    if (maxAmount > 0 && _pools[item.key].Count >= maxAmount)
+                    if (entry.MaxAmount > 0 && entry.TotalCount >= entry.MaxAmount)
                     {
-                        Debug.LogWarning($"PoolManager: Reached max amount for key '{item.key}'. Skipping preload.");
+                        Debug.LogWarning($"PoolManager: Cannot preload more than max amount for key '{item.key}'. Stopping preload.");
                         break;
                     }
-                    GameObject newObj = Instantiate(prefab);
-                    newObj.name = $"{item.key}_Pooled";
+
+                    GameObject newObj = Instantiate(entry.Prefab);
+                    newObj.name = $"{item.key}_Pooled_{i}";
                     newObj.SetActive(false);
-                    _pools[item.key].Add(newObj);
+                    entry.InactiveObjects.Push(newObj);
+                    entry.TotalCount++;
                 }
             }
             
@@ -158,146 +171,54 @@ namespace Managers
 
         }
 
-        public GameObject GetFromPool(string key)
-        {
-            if (!_isInitalized)
-            {
-                Debug.LogError("PoolManager: Not initialized. Call InitializePools() first.");
-                return null;
-            }
-
-            if (!_pools.TryGetValue(key, out var poolList))
-            {
-                Debug.LogError($"[Pool] Key '{key}' is not registered in PoolManager.");
-                return null;
-            }
-            poolList.RemoveAll(obj => obj == null);
-
-
-            foreach (GameObject item in poolList)
-            {
-                if (!item.activeSelf)
-                {
-                    item.SetActive(true);
-                    return item;
-                }
-            }
-
-            int maxAmount = _maxAmounts[key];
-            bool canCreateMore = (maxAmount == 0 || poolList.Count < maxAmount);
-
-            if (canCreateMore)
-            {
-                if (!_prefabDict.TryGetValue(key, out GameObject prefab) || prefab == null)
-                {
-                    Debug.LogError($"[Pool] Prefab reference for key '{key}' is null.");
-                    return null;
-                }
-
-                GameObject newObj = Instantiate(prefab);
-                newObj.name = $"{key}_Pooled";
-                poolList.Add(newObj);
-                newObj.SetActive(true);
-                return newObj;
-            }
-            Debug.LogWarning($"[Pool] Key '{key}' pool exhausted (max = {maxAmount}).");
-            return null;
-        }
-
-
         // /// <summary>
         // /// Retrieves (or instantiates) an object from the pool of given key.
         // /// </summary>
         // /// <param name="key">The string key identifying the prefab.</param>
         // /// <returns>An active GameObject from the pool. Null if the key is invalid.</returns>
-        // public GameObject GetFromPool(string key)
-        // {
-        //     if (!_pools.ContainsKey(key))
-        //     {
-        //         Debug.LogError($"PoolManager.GetFromPool: Key '{key}' does not exist. Returning null.");
-        //         return null;
-        //     }
-
-        //     var poolList = _pools[key];
-        //     poolList.RemoveAll(obj => obj == null); // Clean up null references
-        //     if (poolList.Count == 0)
-        //     {
-        //         Debug.LogWarning($"PoolManager.GetFromPool: No objects in pool for key '{key}'. Returning null.");
-        //         return null;
-        //     }
-        //     GameObject selected = null;
-
-        //     // Find an inactive object
-        //     foreach (GameObject obj in poolList)
-        //     {
-        //         if (!obj.activeSelf)
-        //         {
-        //             selected = obj;
-        //             selected.SetActive(true);
-        //             break;
-        //         }
-        //     }
-
-        //     // If none found, instantiate a new one
-        //     if (selected == null)
-        //     {
-        //         int maxAmount = _maxAmounts[key];
-        //         if (maxAmount > 0 && poolList.Count >= maxAmount)
-        //         {
-        //             Debug.LogWarning($"PoolManager.GetFromPool: Reached max amount for key '{key}'. Returning null.");
-        //             return null;
-        //         }
-                
-        //         if (!_prefabDict.ContainsKey(key) || _prefabDict[key] == null)
-        //         {
-        //             Debug.LogError($"PoolManager.GetFromPool: Prefab is null for key '{key}'.");
-        //             return null;
-        //         }
-
-        //         selected = Instantiate(_prefabDict[key]);
-        //         selected.name = $"{key}_Pooled";
-        //         poolList.Add(selected);
-        //     }
-
-        //     return selected;
-        // }
-
-        /// <summary>
-        /// Deactivates all objects in the specified pool (by key).
-        /// </summary>
-        /// <param name="key">The string key.</param>
-        public void DeactivatePool(string key)
+        public GameObject GetFromPool(string key)
         {
-            if (!_pools.ContainsKey(key))
+            using (_getFromPoolMarker.Auto())
             {
-                Debug.LogError($"PoolManager.DeactivatePool: Key '{key}' does not exist.");
-                return;
+                if (!_isInitalized)
+                {
+                    Debug.LogError("PoolManager: Not initialized. Call InitializePools() first.");
+                    return null;
+                }
+
+                if (!_pools.TryGetValue(key, out PoolEntry entry))
+                {
+                    Debug.LogError($"[Pool] Key '{key}' is not registered in PoolManager.");
+                    return null;
+                }
+
+                while (entry.InactiveObjects.Count > 0)
+                {
+                    GameObject obj = entry.InactiveObjects.Pop();
+                    if (obj == null) continue;
+                    obj.SetActive(true);
+                    return obj;
+                }
+
+                if (entry.MaxAmount > 0 && entry.TotalCount >= entry.MaxAmount)
+                {
+                    Debug.LogWarning($"[Pool] Key '{key}' pool exhausted (max = {entry.MaxAmount}).");
+                    return null;
+                }
+
+                if (entry.Prefab == null)
+                {
+                    Debug.LogError($"[Pool] Prefab reference for key '{key}' is null.");
+                    return null;
+                }
+
+                GameObject newObj = Instantiate(entry.Prefab);
+                newObj.name = $"{key}_Pooled_{entry.TotalCount}";
+                entry.TotalCount++;
+                newObj.SetActive(true);
+                return newObj;
             }
 
-            foreach (GameObject obj in _pools[key])
-            {
-                if (obj != null)
-                {
-                    obj.SetActive(false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Deactivates all objects in all pools.
-        /// </summary>
-        public void DeactivateAllPools()
-        {
-            foreach (var kvp in _pools)
-            {
-                foreach (GameObject obj in kvp.Value)
-                {
-                    if (obj != null)
-                    {
-                        obj.SetActive(false);
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -307,23 +228,29 @@ namespace Managers
         /// <param name="key">The string key representing its pool.</param>
         public void ReturnToPool(GameObject obj, string key)
         {
-            if (!_pools.ContainsKey(key))
+            using (_returnToPoolMarker.Auto())
             {
-                Debug.LogError($"PoolManager.ReturnToPool: Key '{key}' does not exist.");
-                return;
-            }
-            if (obj == null)
-            {
-                Debug.LogWarning("PoolManager.ReturnToPool: obj is null.");
-                return;
-            }
+                if (obj == null)
+                {
+                    Debug.LogError("PoolManager: Cannot return null object to pool.");
+                    return;
+                }
 
-            var poolList = _pools[key];
-            if (!poolList.Contains(obj))
-            {
-                poolList.Add(obj);
+                if (!_pools.TryGetValue(key, out PoolEntry entry))
+                {
+                    Debug.LogError($"[Pool] Key '{key}' is not registered in PoolManager. Cannot return object to pool.");
+                    return;
+                }
+
+                if (!obj.activeSelf)
+                {
+                    Debug.LogWarning($"[Pool] Object '{obj.name}' is already inactive. Skipping return to pool for key '{key}'.");
+                    return;
+                }
+
+                obj.SetActive(false);
+                entry.InactiveObjects.Push(obj);
             }
-            obj.SetActive(false);
         }
 
         #endregion
