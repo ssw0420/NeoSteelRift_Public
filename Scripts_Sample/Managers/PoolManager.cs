@@ -218,7 +218,6 @@ namespace Managers
                 newObj.SetActive(true);
                 return newObj;
             }
-
         }
 
         /// <summary>
